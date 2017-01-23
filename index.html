@@ -51,7 +51,7 @@ function initMap() {
 function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(geo){
-        	var loc = 	{lat :geo.coords.latitute, lng : geo.coords.longitude};
+        	var loc = 	{lat :geo.coords.latitude, lng : geo.coords.longitude};
         	if(myMarker){
         		myMarker.position = loc;
         	}
