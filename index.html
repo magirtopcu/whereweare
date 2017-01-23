@@ -52,11 +52,12 @@ function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(geo){
         	var loc = 	{lat :geo.coords.latitute, lng : geo.coords.longitude};
-        	if(marker){
-        		marker.position = loc;
+        	if(myMarker){
+        		myMarker.position = loc;
         	}
         	else{
         		myLatLng = loc;
+        		initMyMarker();
         	}
         });
     } else {
@@ -64,15 +65,19 @@ function getLocation() {
     }
 }
 
-
-function onInitedMap(){
+function initMyMarker(){
 	if(myLatLng){
-				 var marker = new google.maps.Marker({
+	  myMarker = new google.maps.Marker({
           position: myLatLng,
           map: map,
           title: 'Hello World!'
         });
 	}
+	
+}
+
+function onInitedMap(){
+	initMyMarker();
 	
 }
 
