@@ -4,30 +4,76 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <script type="text/javascript" src="//code.jquery.com/jquery-2.1.4.js"></script>
-
+  
  <style type="text/css">
     html, body {
   height: 100%;
   margin: 0;
   padding: 0;
 }
-
+.container{
+	position:  relative;
+	top: 0px;
+	left: 0px;
+}
+.action_container{
+	z-index: 2;
+	background: rgba(0,0,0,0.7);
+	width: 300px;
+	height: 300px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
 #map {
-  height: 50%;
+  height: 100%;
+  z-index: 1;
+}
+.loading{
+	text-align: center;
+	font:30px;
+	color:white;
 }
 </style>
 
 <title>Where Are We?</title>
 <body>
+<div class="container">
+</div>
   <div id="map"></div>
+  <div  class="action_container">
+
+  		<div class="action_content loading"> loading ...<br> please wait...</div>
+  		<div class="action_content share_btns">
+
+  				<button class="share whatsapp">Share-Whatsapp</button>
+
+  		</div>
+  		<div class="action_content chat_window"></div>
+  		<div class="action_content warning"></div>
+
+
+  </div>
 <!-- Replace the API Key with your own -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBv9FytZP8DWmWSzkjFfKw-KkXlFibrpk&callback=initMap" async defer></script>
 
+<script src="https://www.gstatic.com/firebasejs/3.6.6/firebase.js"></script>
+
 <script type='text/javascript'>
+
+
+var showContent = function(selector){
+		$(".action_content").hide();
+		$(selector).show();
+}
+showContent(".loading");
 var lat,lng;
 var map;
 var myMarker;
 var myLatLng;
+
+var me = { title:"me" };
+var friend = {};
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat:41.0829132 , lng:29.0013657},
@@ -51,13 +97,13 @@ function initMap() {
 function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(geo){
+        	console.log(geo);
         	var loc = 	{lat :geo.coords.latitude, lng : geo.coords.longitude};
-        	if(myMarker){
-        		myMarker.position = loc;
-        	}
-        	else{
-        		myLatLng = loc;
-        		initMyMarker();
+        	showOnMap(me,loc);
+        	showContent(".share_btns");
+        	updateLoc(me,loc);
+        	if(who=="guest"){
+        		writeLoc(id,loc);
         	}
         });
     } else {
@@ -65,21 +111,116 @@ function getLocation() {
     }
 }
 
-function initMyMarker(){
-	if(myLatLng){
-	  myMarker = new google.maps.Marker({
-          position: myLatLng,
+function showOnMap(who,loc){
+		if(who.marker){
+        		who.marker.position = loc;
+        		who.loc = loc;
+        	}
+        	else{
+        		who.loc = loc;
+        		initMarker(who);
+        	}
+
+}
+
+function showFriendOnMap(loc){
+		if(friendMarkert){
+			myMarker.position = loc;
+        		myLatLng = loc;
+		}
+}
+
+function initMarker(who){
+	if(who.loc){
+	  who.marker = new google.maps.Marker({
+          position: who.loc,
           map: map,
-          title: 'Hello World!'
+          title: who.title
         });
 	}
 	
 }
 
 function onInitedMap(){
-	initMyMarker();
+	initMarker(me);
 	
 }
+
+function makeid()
+{
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for( var i=0; i < 5; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
+
+getLocation();
+
+
+
+
+
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyDO_1XsGc2cjwq-yMQUC9RuqzqWrzfPjcs",
+    authDomain: "whereweare-1485205412406.firebaseapp.com",
+    databaseURL: "https://whereweare-1485205412406.firebaseio.com",
+    storageBucket: "whereweare-1485205412406.appspot.com",
+    messagingSenderId: "428483340200"
+  };
+  firebase.initializeApp(config);
+  
+  var hash = window.location.hash.substr(1);
+  var id = hash ? hash : makeid();
+  var who = hash ? "guest" : "host";
+
+   function getFriendType(){
+   		if(who=="guest"){
+   			return "host";
+   		}
+   		else{
+   			return "guest";
+   		}
+   }
+ var db  = firebase.database();
+ db.goOnline();
+ var isConnectionActive=false;
+  function writeLoc(id, loc) {
+  		
+  		db.ref('locations/' + id+ "/"+who).set(loc);
+
+  		db.ref('locations/'+id).on('child_changed',function(data){
+  							console.log(data);
+  							if(data.key==getFriendType()){
+  									showOnMap(friend,data.val());
+  							}
+  					});
+
+  		db.ref('locations/'+id).on('child_added',function(data){
+  							console.log(data);
+  							if(data.key==getFriendType()){
+  									showOnMap(friend,data.val());
+  							}
+  					});
+
+  		isConnectionActive = true;
+	}
+
+
+function updateLoc(id,loc){
+	if(isConnectionActive){
+		db.ref('locations/' + id+ "/"+who).set(loc);
+	}
+}
+
+$(".share.whatsapp").click(function(){
+	writeLoc(id,me.loc);
+	alert(id);
+
+});
 
 
 </script>
