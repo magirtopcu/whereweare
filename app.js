@@ -35,9 +35,10 @@ var  App = function(){
 	var people = {};
 	this.location_uid  = util.getLocationUid();
 	this.state = new State();
+	this.state.set("chat");
 	var self  =this;
 	var connectionProvider = null;
-
+	var chatPath = "chat";
 	var onLocationChanged = function(loc){
 		if(connectionProvider){
 			connectionProvider.sendData(self.location_uid,me.id,loc);
@@ -47,6 +48,11 @@ var  App = function(){
 
 	var onDataChanged = function(data){
 			var key = data.key;
+			console.log(key,data.val());
+			if(key==chatPath){
+				chatHelper.onMessage(data.val());
+				return;
+			}
 			if(me.id == key){
 				var marker = me.marker;
 				if(!marker){
@@ -87,11 +93,24 @@ var  App = function(){
 	connectionProvider =  new PeerConnectionProvider();
 	
 	connectionProvider.onDataChanged(self.location_uid,onDataChanged);
+
+	var sender  = {
+		send : function(data){
+			connectionProvider.sendChatMessage(self.location_uid,chatPath,{from:me.id,msg:data});
+		}
+	}
+	var chatHelper = new ChatHelper(sender);
 }
 
 
 var State = function(){
 
+}
+State.prototype.set  = function(state){
+	if(state=="chat"){
+		$(".action_content").hide();
+		$(".chat_window").show();
+	}
 }
 
 var Me = function(){
@@ -120,6 +139,12 @@ var  PeerConnectionProvider  = function(){
 
      this.db  = firebase.database();
  	 this.db.goOnline();
+}
+
+PeerConnectionProvider.prototype.sendChatMessage=function(locationUid,subPath,message){
+					var messageListRef = this.db.ref('locations/' + locationUid+ "/"+subPath);
+				    var newMessageRef = messageListRef.push();
+				    newMessageRef.set(message);
 }
 
 PeerConnectionProvider.prototype.sendData=function(locationUid,subPath,data){
@@ -190,13 +215,69 @@ MapProvider.prototype.createMarkerOnMap = function(loc,title){
 }
 
 MapProvider.prototype.moveMarkerOnMap = function(marker,loc){
-   marker.position = loc;
+    marker.setPosition( loc );
+    this.map.panTo( loc );
 }
+
+var createMessageHtml = function(message){
+	var  t = '<div class="row msg_container base_receive">'
+                     + '<div class="col-md-2 col-xs-2 avatar">'
+                     +      ' <img src="http://www.bitrebels.com/wp-content/uploads/2011/02/Original-Facebook-Geek-Profile-Avatar-1.jpg" class=" img-responsive "> '
+                     +'  </div>'
+                      + ' <div class="col-md-10 col-xs-10">'
+                         + '  <div class="messages msg_receive"> '
+                          + '     <p> @message </p>'
+                               
+                          + '  </div></div> </div> ';
+                          console.log(t);
+                          var k =  t.replace("@message",message);
+                          console.log(k);
+                          return k;
+}
+
+var ChatHelper  = function(sender){
+		 this.chatContainer = $(".msg_container_base");
+		 var chatInput = $("#btn-input");
+
+		
+
+		$(document).on('click',"#btn-chat",function(){
+					sender.send(chatInput.val());
+		 		chatInput.val("");
+		 });
+
+		var self = this;
+		setTimeout(function(){
+			chatInput = $("#btn-input");
+			self.chatContainer = $(".msg_container_base");
+		},1000);
+}
+
+ChatHelper.prototype.onMessage = function(message){
+	var txt = "";
+	for(var i  in message){
+		txt +=createMessageHtml ( message[i].from + ": " + message[i].msg );
+	}
+	this.chatContainer[0].innerHTML =(txt);
+}
+
+
+
+
 
 
 function initMap() {
   
 	var app = new App();
+
  
 }
+
+$(function(){
+		$(".chat_window").load("chat.html");
+
+		$(".action_container").click(function(){
+			$(this).css("bottom",0);
+		});
+})
 
