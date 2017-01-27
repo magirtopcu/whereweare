@@ -276,8 +276,22 @@ function initMap() {
 $(function(){
 		$(".chat_window").load("chat.html");
 
-		$(".action_container").click(function(){
-			$(this).css("bottom",0);
-		});
+
+		  $('.button-collapse').sideNav({
+				      menuWidth: 300, // Default is 300
+				      edge: 'left', // Choose the horizontal origin
+				      closeOnClick: true, // Closes side-nav on <a> clicks, useful for Angular/Meteor
+				      draggable: true // Choose whether you can drag to open on touch screens
+    		}
+  		);
+		  $(".tab-class").hide();
+		  $(".tab-class.active").show();
+		  $(".nav-class").click(function(){
+		  		var t = $(this).data("tab");
+		  		$(".tab-class").hide();
+		  		$(t).show();
+
+		  });
+        
 })
 
